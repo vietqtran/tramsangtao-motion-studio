@@ -71,8 +71,8 @@ export function QuotaPanel() {
         <span className="quota-label">Video slots trống</span>
         <span className="quota-value">{limits.available.video_slots}</span>
       </div>
-      <button className="ghost-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 6, fontSize: 12 }} onClick={refresh}>
-        Làm mới
+      <button className="ghost-btn" style={{ width: '100%', justifyContent: 'center', marginTop: 8, fontSize: 12, padding: '6px 10px' }} onClick={refresh}>
+        Refresh
       </button>
     </div>
   );

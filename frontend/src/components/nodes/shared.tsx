@@ -38,7 +38,7 @@ export function NodeShell({
 }: PropsWithChildren<{ title: string; width?: number; height?: number }>) {
   return (
     <div className="node-shell" style={{ width, height }}>
-      <NodeResizer minWidth={220} minHeight={120} />
+      <NodeResizer minWidth={220} minHeight={120} lineStyle={{ borderColor: 'transparent' }} handleStyle={{ background: 'var(--accent)', border: 'none', width: 8, height: 8, borderRadius: 2 }} />
       <div className="node-title">{title}</div>
       {children}
     </div>

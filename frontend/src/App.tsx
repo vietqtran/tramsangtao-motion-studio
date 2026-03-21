@@ -567,38 +567,38 @@ function FlowApp() {
   return (
     <div className="app-shell">
       <div className="topbar">
-        <div className="brand">Motion Studio Local</div>
+        <div className="brand">Motion Studio</div>
         <div className="toolbar-actions">
           <button className="ghost-btn" onClick={() => addTextNode(getViewportCenter())}>
-            <Plus size={14} /> Text
+            <Plus size={13} /> Text
           </button>
           <button className="ghost-btn" onClick={() => addMotionAiNode(getViewportCenter())}>
-            <Plus size={14} /> Motion AI
+            <Plus size={13} /> Motion AI
           </button>
           <button className="ghost-btn" onClick={() => addOutputNode(getViewportCenter())}>
-            <Plus size={14} /> Output
+            <Plus size={13} /> Output
           </button>
           <button className="ghost-btn" onClick={() => addTryOnNode(getViewportCenter())}>
-            <Plus size={14} /> Try-On AI
+            <Plus size={13} /> Try-On AI
           </button>
           <button className="ghost-btn" onClick={() => addProductImageNode(getViewportCenter())}>
-            <Plus size={14} /> Product Image
+            <Plus size={13} /> Product
           </button>
           <button className="ghost-btn" onClick={() => addOutputImageNode(getViewportCenter())}>
-            <Plus size={14} /> Output Image
+            <Plus size={13} /> Output Img
           </button>
           <button className="ghost-btn" onClick={() => filePickerRef.current?.click()}>
-            <FileUp size={14} /> Add media
+            <FileUp size={13} /> Media
           </button>
           <button className="ghost-btn" onClick={saveJson}>
-            <Save size={14} /> Save JSON
+            <Save size={13} /> Save
           </button>
           <button className="ghost-btn" onClick={() => importPickerRef.current?.click()}>
-            <Download size={14} /> Load JSON
+            <Download size={13} /> Load
           </button>
           {selectedNodeId ? (
             <button className="danger-btn" onClick={() => removeNode(selectedNodeId)}>
-              <Trash2 size={14} /> Delete
+              <Trash2 size={13} /> Delete
             </button>
           ) : null}
         </div>
@@ -607,14 +607,14 @@ function FlowApp() {
       <div className="workspace">
         <aside className="sidebar">
           <QuotaPanel />
-          <h3>Quick guide</h3>
-          <p>1. Drop image/video vào canvas.</p>
-          <p>2. Upload từng node media.</p>
-          <p>3. Nối image + video vào Motion AI.</p>
-          <p>4. Nối Motion AI sang Output.</p>
-          <p>5. Run Motion.</p>
+          <h3>Hướng dẫn nhanh</h3>
+          <p>1. Drop image/video vào canvas</p>
+          <p>2. Upload từng node media</p>
+          <p>3. Nối image + video vào Motion AI</p>
+          <p>4. Nối Motion AI sang Output</p>
+          <p>5. Nhấn Run Motion</p>
 
-          <h3>Selected node</h3>
+          <h3>Node đang chọn</h3>
           {selectedNode ? (
             <div className="inspector-card">
               <div>
@@ -623,7 +623,7 @@ function FlowApp() {
               <pre>{JSON.stringify(selectedNode.data, null, 2)}</pre>
             </div>
           ) : (
-            <p>Chọn node để xem dữ liệu.</p>
+            <p>Chọn node để xem chi tiết.</p>
           )}
         </aside>
 
@@ -683,7 +683,7 @@ function FlowApp() {
             edgesFocusable
           >
             <Panel position="top-left" className="panel-tip">
-              Drop media trực tiếp vào canvas · Chuột trái: pan · Chuột phải: bôi chọn
+              Drop media vào canvas &middot; LMB: pan &middot; RMB: marquee select
             </Panel>
             <MiniMap pannable zoomable />
             <Controls />
