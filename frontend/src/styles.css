@@ -134,25 +134,82 @@ button, input, textarea, select { font: inherit; }
   display: grid;
   grid-template-columns: 264px 1fr;
   height: calc(100% - 56px);
+  position: relative;
+  transition: grid-template-columns 0.3s var(--ease);
+}
+
+.workspace.sidebar-collapsed {
+  grid-template-columns: 0px 1fr;
 }
 
 /* ═══════════ Sidebar ═══════════ */
 
 .sidebar {
+  position: relative;
   border-right: 1px solid var(--border-subtle);
-  padding: 16px;
   background: var(--bg-surface);
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  min-width: 0;
+  transition: width 0.3s var(--ease), opacity 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
-.sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb {
+.sidebar.collapsed {
+  border-right-color: transparent;
+}
+
+.sidebar-content {
+  width: 264px;
+  min-width: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  opacity: 1;
+  transition: opacity 0.2s var(--ease);
+}
+
+.sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 12px;
+  left: 250px;
+  z-index: 20;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s var(--ease);
+  padding: 0;
+}
+
+.workspace.sidebar-collapsed .sidebar-toggle {
+  left: 8px;
+}
+
+.sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.sidebar-content::-webkit-scrollbar { width: 4px; }
+.sidebar-content::-webkit-scrollbar-track { background: transparent; }
+.sidebar-content::-webkit-scrollbar-thumb {
   background: var(--border-default);
   border-radius: var(--radius-full);
 }
-.sidebar::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+.sidebar-content::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 .sidebar h3 {
   font-size: 11px;
@@ -581,6 +638,8 @@ button:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .quota-label {
@@ -594,6 +653,10 @@ button:disabled {
   font-weight: 500;
   text-align: right;
   font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .quota-mono {

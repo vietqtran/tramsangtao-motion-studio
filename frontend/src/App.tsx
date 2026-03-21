@@ -11,7 +11,7 @@ import {
   type XYPosition,
   type ReactFlowInstance,
 } from '@xyflow/react';
-import { Download, FileUp, Plus, Save, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileUp, Plus, Save, Trash2 } from 'lucide-react';
 import { CharacterImageNode } from './components/nodes/CharacterImageNode';
 import { MotionAiNode } from './components/nodes/MotionAiNode';
 import { MotionVideoNode } from './components/nodes/MotionVideoNode';
@@ -49,6 +49,8 @@ function FlowApp() {
   const redoHistoryRef = useRef<WorkflowSnapshot[]>([]);
   const lastSnapshotRef = useRef<WorkflowSnapshot | null>(null);
   const restoringRef = useRef(false);
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Right-click marquee state
   const [marquee, setMarquee] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
@@ -604,28 +606,37 @@ function FlowApp() {
         </div>
       </div>
 
-      <div className="workspace">
-        <aside className="sidebar">
-          <QuotaPanel />
-          <h3>Hướng dẫn nhanh</h3>
-          <p>1. Drop image/video vào canvas</p>
-          <p>2. Upload từng node media</p>
-          <p>3. Nối image + video vào Motion AI</p>
-          <p>4. Nối Motion AI sang Output</p>
-          <p>5. Nhấn Run Motion</p>
+      <div className={`workspace ${sidebarOpen ? '' : 'sidebar-collapsed'}`}>
+        <aside className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
+          <div className="sidebar-content">
+            <QuotaPanel />
+            <h3>Hướng dẫn nhanh</h3>
+            <p>1. Drop image/video vào canvas</p>
+            <p>2. Upload từng node media</p>
+            <p>3. Nối image + video vào Motion AI</p>
+            <p>4. Nối Motion AI sang Output</p>
+            <p>5. Nhấn Run Motion</p>
 
-          <h3>Node đang chọn</h3>
-          {selectedNode ? (
-            <div className="inspector-card">
-              <div>
-                <strong>{selectedNode.type}</strong>
+            <h3>Node đang chọn</h3>
+            {selectedNode ? (
+              <div className="inspector-card">
+                <div>
+                  <strong>{selectedNode.type}</strong>
+                </div>
+                <pre>{JSON.stringify(selectedNode.data, null, 2)}</pre>
               </div>
-              <pre>{JSON.stringify(selectedNode.data, null, 2)}</pre>
-            </div>
-          ) : (
-            <p>Chọn node để xem chi tiết.</p>
-          )}
+            ) : (
+              <p>Chọn node để xem chi tiết.</p>
+            )}
+          </div>
         </aside>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setSidebarOpen((v) => !v)}
+          title={sidebarOpen ? 'Thu gọn sidebar' : 'Mở sidebar'}
+        >
+          {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        </button>
 
         <main
           ref={canvasShellRef}
