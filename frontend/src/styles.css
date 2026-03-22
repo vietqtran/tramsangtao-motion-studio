@@ -678,6 +678,116 @@ button:disabled {
   margin: 4px 0;
 }
 
+/* ═══════════ Credit Estimate & Pricing Table ═══════════ */
+
+.credit-estimate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid rgba(129, 140, 248, 0.18);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.credit-estimate strong {
+  font-weight: 700;
+  color: var(--warning);
+}
+
+.pricing-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+  width: 100%;
+  justify-content: center;
+}
+
+.pricing-toggle:hover {
+  color: var(--accent);
+}
+
+.pricing-table-wrap {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.pricing-table-wrap::-webkit-scrollbar { width: 3px; }
+.pricing-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.pricing-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pricing-table th {
+  padding: 5px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pricing-table th:last-child {
+  text-align: right;
+}
+
+.pricing-table td {
+  padding: 4px 8px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(37, 37, 45, 0.5);
+}
+
+.pricing-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pricing-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.pricing-row-active {
+  background: var(--accent-soft);
+}
+
+.pricing-row-active td {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.pricing-credits {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--warning);
+}
+
 /* ═══════════ TryOn Labels ═══════════ */
 
 .tryon-label {

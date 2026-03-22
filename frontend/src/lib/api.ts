@@ -173,6 +173,7 @@ export async function generateImage(payload: {
   resolution?: string;
   aspect_ratio?: string;
   speed?: string;
+  server_id?: string;
 }) {
   logReq('generateImage', { prompt: payload.prompt, model: payload.model, imageCount: payload.input_images?.length ?? 0, aspect_ratio: payload.aspect_ratio });
 
@@ -184,6 +185,7 @@ export async function generateImage(payload: {
   if (payload.resolution) formData.append('resolution', payload.resolution);
   if (payload.aspect_ratio) formData.append('aspect_ratio', payload.aspect_ratio);
   if (payload.speed) formData.append('speed', payload.speed);
+  if (payload.server_id) formData.append('server_id', payload.server_id);
 
   try {
     const response = await fetch(`${API_BASE}/image/generate`, { method: 'POST', body: formData });
@@ -192,6 +194,34 @@ export async function generateImage(payload: {
     return data;
   } catch (error) {
     logErr('generateImage', error);
+    throw error;
+  }
+}
+
+export type PricingEntry = {
+  model: string;
+  server: string;
+  config_key: string;
+  credits: number;
+  resolution?: string;
+  duration?: string;
+  aspect_ratio?: string;
+  speed?: string;
+  audio?: boolean;
+};
+
+export async function getPricing(model?: string, server_id?: string) {
+  const params = new URLSearchParams();
+  if (model) params.set('model', model);
+  if (server_id) params.set('server_id', server_id);
+  const qs = params.toString();
+  try {
+    const response = await fetch(`${API_BASE}/models/pricing${qs ? `?${qs}` : ''}`);
+    const data = await parseResponse<{ pricing: PricingEntry[]; count: number }>(response);
+    logRes('getPricing', data);
+    return data;
+  } catch (error) {
+    logErr('getPricing', error);
     throw error;
   }
 }

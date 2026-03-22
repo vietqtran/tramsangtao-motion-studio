@@ -133,6 +133,23 @@ app.get('/api/models', async (req, res) => {
   }
 });
 
+// ─── Pricing ──────────────────────────────────────────────────────────────────
+app.get('/api/models/pricing', async (req, res) => {
+  if (!ensureApiKey(res)) return;
+  logRequest(req);
+  const qs = req.url.split('?')[1] || '';
+  const upstreamUrl = `/models/pricing${qs ? `?${qs}` : ''}`;
+  logUpstream('GET', upstreamUrl, []);
+  try {
+    const response = await tssRequest({ method: 'GET', url: upstreamUrl });
+    logUpstreamResponse(upstreamUrl, response.status, response.data);
+    res.json(response.data);
+  } catch (error) {
+    logError(upstreamUrl, error);
+    mapAxiosError(error, res);
+  }
+});
+
 // ─── Limits ──────────────────────────────────────────────────────────────────
 app.get('/api/limits', async (req, res) => {
   if (!ensureApiKey(res)) return;
@@ -298,6 +315,7 @@ app.post(
     const resolution = req.body.resolution;
     const aspect_ratio = req.body.aspect_ratio;
     const speed = req.body.speed;
+    const server_id = req.body.server_id;
     const img_urls = req.body.img_url
       ? (Array.isArray(req.body.img_url) ? req.body.img_url : [req.body.img_url])
       : [];
@@ -323,10 +341,12 @@ app.post(
       if (resolution) form.append('resolution', resolution);
       if (aspect_ratio) form.append('aspect_ratio', aspect_ratio);
       if (speed) form.append('speed', speed);
+      if (server_id) form.append('server_id', server_id);
 
       const formKeys = ['prompt', 'model', `input_image×${inputFiles.length}`];
       if (aspect_ratio) formKeys.push(`aspect_ratio=${aspect_ratio}`);
       if (resolution) formKeys.push(`resolution=${resolution}`);
+      if (server_id) formKeys.push(`server_id=${server_id}`);
       
       logUpstream('POST', '/image/generate', formKeys);
       const response = await tssRequest({ method: 'POST', url: '/image/generate', data: form, headers: form.getHeaders(), timeout: 300000 });

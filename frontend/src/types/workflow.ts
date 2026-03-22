@@ -59,6 +59,7 @@ export type TryOnData = {
   prompt: string;
   model: string;
   aspect_ratio: string;
+  server_id?: string;
   // person/model image
   modelPreviewUrl?: string;
   modelFileName?: string;

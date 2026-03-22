@@ -1,19 +1,53 @@
-import { memo, useRef } from 'react';
+import { memo, useMemo, useRef, useState } from 'react';
 import { Position, type NodeProps, type Node } from '@xyflow/react';
-import { Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Coins, Upload } from 'lucide-react';
 import { generateImage, getJobStatus } from '../../lib/api';
+import { usePricing, getAllPricing, getPricingLabel, getAvailableServers } from '../../lib/usePricing';
 import { findConnectedInputByHandle, pushResultToOutputs, useWorkflowStore } from '../../store/workflowStore';
 import type { CharacterImageData, OutputImageData, ProductImageData, TryOnData } from '../../types/workflow';
 import { AutoTextarea, NodeShell, Port } from './shared';
+
+const SERVER_LABELS: Record<string, string> = {
+  vip1: 'VIP1 (Premium)',
+  vip2: 'VIP2 (Standard)',
+  fast: 'Fast (Economy)',
+  Cheap: 'Cheap (Budget)',
+};
 
 function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
   const modelInputRef = useRef<HTMLInputElement | null>(null);
   const productInputRef = useRef<HTMLInputElement | null>(null);
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const pricing = usePricing();
+  const [showPricing, setShowPricing] = useState(false);
 
   const isBusy = data.status === 'validating' || data.status === 'rendering';
   const isSuccess = data.status === 'success';
   const isError = data.status === 'error';
+
+  const currentModel = data.model ?? 'nano-banana-pro';
+
+  const availableServers = useMemo(() => {
+    return getAvailableServers(pricing, currentModel);
+  }, [pricing, currentModel]);
+
+  const currentServer = useMemo(() => {
+    const s = data.server_id ?? 'vip1';
+    if (availableServers.length > 0 && !availableServers.includes(s)) {
+      return availableServers[0];
+    }
+    return s;
+  }, [data.server_id, availableServers]);
+
+  const allPrices = useMemo(() => {
+    return getAllPricing(pricing, currentModel, currentServer);
+  }, [pricing, currentModel, currentServer]);
+
+  // Find cheapest non-slow entry as "current" estimate
+  const currentPrice = useMemo(() => {
+    const fast = allPrices.filter((p) => p.speed !== 'slow' && p.speed !== 'per-second' && !p.audio);
+    return fast.length > 0 ? fast[0] : undefined; // already sorted by credits asc
+  }, [allPrices]);
 
   function onModelFileChange(file?: File) {
     if (!file) return;
@@ -28,14 +62,12 @@ function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
   }
 
   async function runImageGen() {
-    console.log('[TryOn] runImageGen called, id:', id);
-
     const modelNode = findConnectedInputByHandle(id, 'image:model-in');
     const productNode = findConnectedInputByHandle(id, 'image:product-in');
 
     function resolveFile(node: typeof modelNode, fallback: File | undefined): File | undefined {
       if (!node) return fallback;
-      if (node.type === 'outputImage') return undefined; // URL-only, handled separately
+      if (node.type === 'outputImage') return undefined;
       return (node.data as CharacterImageData | ProductImageData | undefined)?.localFile ?? fallback;
     }
     function resolveUrl(node: typeof modelNode): string | undefined {
@@ -47,11 +79,6 @@ function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
     const modelUrl = resolveUrl(modelNode);
     const productFile = resolveFile(productNode, data.productFile);
     const productUrl = resolveUrl(productNode);
-
-    console.log('[TryOn] sources:', {
-      modelFromNode: modelNode?.id, productFromNode: productNode?.id,
-      hasModelFile: Boolean(modelFile), modelUrl, hasProductFile: Boolean(productFile), productUrl,
-    });
 
     if (!modelFile && !modelUrl) {
       updateNodeData(id, { status: 'error', message: 'Chưa có ảnh người mẫu. Kết nối node ảnh hoặc upload trực tiếp.' });
@@ -67,13 +94,13 @@ function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
     try {
       const payload = {
         prompt: data.prompt?.trim() || 'The person in the first image wearing the outfit from the second image, photorealistic, high quality',
-        model: data.model ?? 'nano-banana-pro',
+        model: currentModel,
         input_images: [modelFile, productFile].filter(Boolean) as File[],
         img_urls: [modelUrl, productUrl].filter(Boolean) as string[],
         aspect_ratio: data.aspect_ratio ?? '1:1',
+        server_id: currentServer,
       };
-      console.log('[TryOn Frontend Params]', payload);
-      
+
       const response = await generateImage(payload);
       updateNodeData(id, { status: 'rendering', jobId: response.job_id, message: 'Đang xử lý... (tự động cập nhật)' });
 
@@ -142,7 +169,7 @@ function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
         </>
       )}
 
-      {/* Prompt (optional override) */}
+      {/* Prompt */}
       <div className="tryon-label" style={{ marginTop: 10 }}>Prompt (tuỳ chọn)</div>
       <AutoTextarea
         value={data.prompt ?? ''}
@@ -154,31 +181,94 @@ function Component({ id, data, width, height }: NodeProps<Node<TryOnData>>) {
       <select
         className="node-select"
         style={{ marginTop: 6 }}
-        value={data.model ?? 'nano-banana-pro'}
+        value={currentModel}
         disabled={isBusy}
         onChange={(e) => updateNodeData(id, { model: e.target.value })}
       >
-        <option value="nano-banana-pro">Nano Banana PRO</option>
-        <option value="nano-banana-pro-fast">Nano Banana PRO Fast</option>
-        <option value="nano-banana">Nano Banana</option>
-        <option value="flux-2-pro">Flux 2 Pro</option>
-        <option value="chat-gpt-image">ChatGPT Image</option>
-        <option value="seedream-4.5">Seedream 4.5</option>
+        <optgroup label="Nano Banana">
+          <option value="nano-banana-pro">Nano Banana PRO</option>
+          <option value="nano-banana">Nano Banana</option>
+          <option value="nano-banana-2">Nano Banana 2</option>
+        </optgroup>
+        <optgroup label="Google">
+          <option value="imagen-4">Imagen 4</option>
+          <option value="imagen-4-fast">Imagen 4 Fast</option>
+          <option value="imagen-4-ultra">Imagen 4 Ultra</option>
+        </optgroup>
+        <optgroup label="Khác">
+          <option value="flux-2-pro">Flux 2 Pro</option>
+          <option value="chat-gpt-image">ChatGPT Image</option>
+          <option value="seedream-4.5">Seedream 4.5</option>
+          <option value="kling-o1-image">Kling O1 Image</option>
+          <option value="grok-image">Grok Image</option>
+        </optgroup>
       </select>
 
-      <select
-        className="node-select"
-        style={{ marginTop: 6 }}
-        value={data.aspect_ratio ?? '1:1'}
-        disabled={isBusy}
-        onChange={(e) => updateNodeData(id, { aspect_ratio: e.target.value })}
-      >
-        <option value="1:1">1:1 (Vuông)</option>
-        <option value="9:16">9:16 (Dọc TikTok)</option>
-        <option value="16:9">16:9 (Ngang YouTube)</option>
-        <option value="3:4">3:4 (Dọc Vừa)</option>
-        <option value="4:3">4:3 (Ngang Vừa)</option>
-      </select>
+      <div className="node-row" style={{ marginTop: 6 }}>
+        <select
+          className="node-select"
+          value={data.aspect_ratio ?? '1:1'}
+          disabled={isBusy}
+          onChange={(e) => updateNodeData(id, { aspect_ratio: e.target.value })}
+        >
+          <option value="1:1">1:1 (Vuông)</option>
+          <option value="9:16">9:16 (Dọc TikTok)</option>
+          <option value="16:9">16:9 (Ngang YouTube)</option>
+          <option value="3:4">3:4 (Dọc Vừa)</option>
+          <option value="4:3">4:3 (Ngang Vừa)</option>
+        </select>
+        <select
+          className="node-select"
+          value={currentServer}
+          disabled={isBusy}
+          onChange={(e) => updateNodeData(id, { server_id: e.target.value })}
+        >
+          {availableServers.length > 0 ? (
+            availableServers.map((s) => (
+              <option key={s} value={s}>{SERVER_LABELS[s] ?? s}</option>
+            ))
+          ) : (
+            <option value="vip1">VIP1 (Premium)</option>
+          )}
+        </select>
+      </div>
+
+      {/* Current config credit */}
+      {currentPrice && (
+        <div className="credit-estimate">
+          <Coins size={13} />
+          <span>Từ <strong>{currentPrice.credits}</strong> credits</span>
+        </div>
+      )}
+
+      {/* Full pricing table toggle */}
+      {allPrices.length > 0 && (
+        <button
+          className="pricing-toggle nodrag"
+          onClick={() => setShowPricing((v) => !v)}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+        >
+          {showPricing ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          Bảng giá ({allPrices.length} cấu hình)
+        </button>
+      )}
+      {showPricing && allPrices.length > 0 && (
+        <div className="pricing-table-wrap nodrag" onPointerDownCapture={(e) => e.stopPropagation()}>
+          <table className="pricing-table">
+            <thead>
+              <tr><th>Cấu hình</th><th>Credits</th></tr>
+            </thead>
+            <tbody>
+              {allPrices.map((p) => (
+                <tr key={p.config_key}>
+                  <td>{getPricingLabel(p)}</td>
+                  <td className="pricing-credits">{p.credits}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <button className="primary-btn full" style={{ marginTop: 8 }} disabled={isBusy} onClick={runImageGen}>
         {isBusy ? <><span className="spinner" /> Đang xử lý...</> : 'Run Image AI'}

@@ -1,16 +1,50 @@
-import { memo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Position, type NodeProps, type Node } from '@xyflow/react';
+import { ChevronDown, ChevronUp, Coins } from 'lucide-react';
 import { generateMotion, getJobStatus } from '../../lib/api';
+import { usePricing, getAllPricing, getPricingLabel, getAvailableServers } from '../../lib/usePricing';
 import { findConnectedInput, pushResultToOutputs, useWorkflowStore } from '../../store/workflowStore';
 import type { CharacterImageData, MotionAiData, MotionVideoData, OutputImageData } from '../../types/workflow';
 import { AutoTextarea, NodeShell, Port } from './shared';
 
+const SERVER_LABELS: Record<string, string> = {
+  vip1: 'VIP1 (Premium)',
+  vip2: 'VIP2 (Standard)',
+  fast: 'Fast (Economy)',
+  Cheap: 'Cheap (Budget)',
+};
+
 function Component({ id, data, width, height }: NodeProps<Node<MotionAiData>>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const pricing = usePricing();
+  const [showPricing, setShowPricing] = useState(false);
 
   const isBusy = data.status === 'validating' || data.status === 'rendering';
   const isSuccess = data.status === 'success';
   const isError = data.status === 'error';
+
+  const availableServers = useMemo(() => {
+    return getAvailableServers(pricing, data.model);
+  }, [pricing, data.model]);
+
+  const currentServer = useMemo(() => {
+    const s = data.server_id ?? 'vip2';
+    if (availableServers.length > 0 && !availableServers.includes(s)) {
+      return availableServers[0];
+    }
+    return s;
+  }, [data.server_id, availableServers]);
+
+  const allPrices = useMemo(() => {
+    return getAllPricing(pricing, data.model, currentServer);
+  }, [pricing, data.model, currentServer]);
+
+  // Find the exact match for current config
+  const currentPrice = useMemo(() => {
+    return allPrices.find((p) =>
+      p.resolution === data.resolution && !p.audio && p.speed !== 'slow' && p.speed !== 'per-second'
+    );
+  }, [allPrices, data.resolution]);
 
   async function runMotion() {
     console.log('[runMotion] called, node id:', id);
@@ -18,16 +52,8 @@ function Component({ id, data, width, height }: NodeProps<Node<MotionAiData>>) {
     const imageNode = findConnectedInput(id, 'image');
     const videoNode = findConnectedInput(id, 'cover');
 
-    console.log('[runMotion] connected nodes:', {
-      imageNode: imageNode?.id,
-      imageNodeType: imageNode?.type,
-      videoNode: videoNode?.id,
-      videoNodeType: videoNode?.type,
-    });
-
     const videoData = videoNode?.data as MotionVideoData | undefined;
 
-    // Resolve image: characterImage (file/url) or outputImage (remoteUrl > resultUrl)
     let characterImageFile: File | undefined;
     let characterImageUrl: string | undefined;
     if (imageNode?.type === 'outputImage') {
@@ -39,14 +65,6 @@ function Component({ id, data, width, height }: NodeProps<Node<MotionAiData>>) {
       characterImageFile = charData?.localFile;
       characterImageUrl = charData?.remoteUrl;
     }
-
-    console.log('[runMotion] data check:', {
-      imageNodeType: imageNode?.type,
-      hasImageFile: Boolean(characterImageFile),
-      hasImageUrl: Boolean(characterImageUrl),
-      motionVideoUrl: videoData?.motionVideoUrl,
-      videoCoverUrl: videoData?.videoCoverUrl,
-    });
 
     if (!characterImageFile && !characterImageUrl) {
       updateNodeData(id, { status: 'error', message: 'Chưa có ảnh nhân vật. Kéo ảnh vào canvas và nối vào đây.' });
@@ -71,7 +89,7 @@ function Component({ id, data, width, height }: NodeProps<Node<MotionAiData>>) {
         model: data.model,
         mode: data.mode,
         resolution: data.resolution,
-        server_id: data.server_id,
+        server_id: currentServer,
       });
 
       updateNodeData(id, { status: 'rendering', jobId: response.job_id, message: 'Đang render... (tự động cập nhật)' });
@@ -130,13 +148,61 @@ function Component({ id, data, width, height }: NodeProps<Node<MotionAiData>>) {
           <option value="720p">720p</option>
           <option value="1080p">1080p</option>
         </select>
-        <select value={data.server_id ?? 'fast'} className="node-select" onChange={(event) => updateNodeData(id, { server_id: event.target.value })}>
-          <option value="vip1">VIP1 (Premium)</option>
-          <option value="vip2">VIP2 (Standard)</option>
-          <option value="fast">Fast (Economy)</option>
-          <option value="Cheap">Cheap (Budget)</option>
+        <select value={currentServer} className="node-select" onChange={(event) => updateNodeData(id, { server_id: event.target.value })}>
+          {availableServers.length > 0 ? (
+            availableServers.map((s) => (
+              <option key={s} value={s}>{SERVER_LABELS[s] ?? s}</option>
+            ))
+          ) : (
+            <option value="vip2">VIP2 (Standard)</option>
+          )}
         </select>
       </div>
+
+      {/* Current config credit */}
+      {currentPrice && (
+        <div className="credit-estimate">
+          <Coins size={13} />
+          <span>Chi phí: <strong>{currentPrice.credits}</strong> credits</span>
+        </div>
+      )}
+
+      {/* Full pricing table toggle */}
+      {allPrices.length > 0 && (
+        <button
+          className="pricing-toggle nodrag"
+          onClick={() => setShowPricing((v) => !v)}
+          onPointerDownCapture={(e) => e.stopPropagation()}
+        >
+          {showPricing ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          Bảng giá ({allPrices.length} cấu hình)
+        </button>
+      )}
+      {showPricing && allPrices.length > 0 && (
+        <div className="pricing-table-wrap nodrag" onPointerDownCapture={(e) => e.stopPropagation()}>
+          <table className="pricing-table">
+            <thead>
+              <tr><th>Cấu hình</th><th>Credits</th></tr>
+            </thead>
+            <tbody>
+              {allPrices.map((p) => (
+                <tr
+                  key={p.config_key}
+                  className={
+                    p.resolution === data.resolution && !p.audio && p.speed !== 'slow'
+                      ? 'pricing-row-active'
+                      : ''
+                  }
+                >
+                  <td>{getPricingLabel(p)}</td>
+                  <td className="pricing-credits">{p.credits}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <button className="primary-btn full" disabled={isBusy} onClick={runMotion}>
         {isBusy ? <><span className="spinner" /> Đang chạy...</> : 'Run Motion'}
       </button>
